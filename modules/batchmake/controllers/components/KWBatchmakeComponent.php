@@ -53,6 +53,14 @@ class Batchmake_KWBatchmakeComponent extends AppComponent
   protected $configBinDir;
   protected $configDataDir;
   protected $configCondorBinDir;
+  
+  
+  public function getCurrentConfig()
+    {
+    return $this->componentConfig;
+    }
+  
+  
 
   /**
    * Constructor, loads ini from standard config location, unless a
@@ -343,7 +351,7 @@ class Batchmake_KWBatchmakeComponent extends AppComponent
   /**
    * will createa  new batchmake task, along with a work directory
    * @param type $userDao
-   * @return string the path to the workDir for this batchmake task
+   * @return taskDao for this batchmake task
    */
   public function createTask($userDao)
     {
@@ -355,7 +363,9 @@ class Batchmake_KWBatchmakeComponent extends AppComponent
     $subdirs = array(MIDAS_BATCHMAKE_SSP_DIR, $userId, $taskId);
     // create a workDir based on the task and user
     $workDir = KWUtils::createSubDirectories($this->configTmpDir . "/", $subdirs);
-    return $workDir;
+    $taskDao->setWorkDir($workDir);
+    $batchmakeTaskModel->save($taskDao);
+    return $taskDao;
     }
 
   /**
@@ -531,16 +541,18 @@ class Batchmake_KWBatchmakeComponent extends AppComponent
         }
       }
 
-    throw new Zend_Exception("Error in BatchMake script, the compile step didn't report errors, output: [".implode(",", $cmd_output )."]");
+    throw new Zend_Exception("Error in BatchMake script, the compile step didn't report errors, output: [".implode(",", $output )."]");
     }
 
 
 
   /**
    * @method generateCondorDag will create condor scripts and a condor dag
-   * from the batchmake script $bmScript, in the directory $workDir.
+   * from the batchmake script $bmScript, in the directory $workDir, returning
+   * the name of the dag script.
    * @param type $workDir
    * @param type $bmScript
+   * @return $dagName the name of the dag script
    */
   public function generateCondorDag($workDir, $bmScript)
     {

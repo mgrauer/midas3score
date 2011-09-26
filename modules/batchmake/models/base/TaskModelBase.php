@@ -22,7 +22,8 @@ class Batchmake_TaskModelBase extends Batchmake_AppModel {
     $this->_key = 'batchmake_task_id';
     $this->_mainData = array(
       'batchmake_task_id' => array('type' => MIDAS_DATA),
-      'user_id' => array('type' => MIDAS_DATA, )
+      'user_id' => array('type' => MIDAS_DATA, ),
+      'work_dir' => array('type' => MIDAS_DATA, )
        );
     $this->initialize(); // required
     }
@@ -43,11 +44,6 @@ class Batchmake_TaskModelBase extends Batchmake_AppModel {
 
     return $task;
     } // end createTask()
-
-
-
-
-
 
 
 }  // end class Batchmake_TaskModelBase
