@@ -1,0 +1,57 @@
+SetApp(php @PHP)
+SetAppOption(php.script daguploader.php)
+Run(output ${php})
+
+
+ListFileInDir(item1files ${cfg_item1})
+ListFileInDir(item2files ${cfg_item2})
+
+
+echo(${item1files})
+echo(${item2files})
+
+
+foreach (filename1 ${item1files})
+      echo(f1:${filename1})
+
+  foreach (filename2 ${item2files})
+      echo(f2:${filename2})
+
+    if (${cfg_compare_mode} == 'FILENAME_MATCH' && ${filename1} == ${filename2})
+
+      echo(MATCH FILENAME_MATCH)
+
+      SetApp(itemMetric @$ItemMetricName$)
+      SetAppOption(itemMetric.input1 ${cfg_item1}/${filename1})
+      SetAppOption(itemMetric.input2 ${cfg_item2}/${filename2})
+      # TODO something better for output
+      SetAppOption(itemMetric.outputfile ${filename1}${filename2}.out)
+      #CondorPostScript(itemMetric ${cfg_condorpostscript} ${cfg_midas_baseURL} ${cfg_competitor_itemid} ${cfg_GC_itemid} ${cfg_email} ${cfg_appname} ${cfg_apikey} ${cfg_output_directory} ${cfg_output_file} ${cfg_projectname} ${cfg_projectid} ${cfg_experimentname} ${cfg_taskname}) 
+      Run(output ${itemMetric})
+
+    endif()
+
+    # since there is no ELSE, this if will act as an else
+
+    if (${cfg_compare_mode} == 'CARTESIAN_PRODUCT')
+
+      echo(MATCH CARTESIAN)
+
+      SetApp(itemMetric @$ItemMetricName$)
+      SetAppOption(itemMetric.input1 ${cfg_item1}/${filename1})
+      SetAppOption(itemMetric.input2 ${cfg_item2}/${filename2})
+      # TODO something better for output
+      SetAppOption(itemMetric.outputfile ${filename1}${filename2}.out)
+      #CondorPostScript(itemMetric ${cfg_condorpostscript} ${cfg_midas_baseURL} ${cfg_competitor_itemid} ${cfg_GC_itemid} ${cfg_email} ${cfg_appname} ${cfg_apikey} ${cfg_output_directory} ${cfg_output_file} ${cfg_projectname} ${cfg_projectid} ${cfg_experimentname} ${cfg_taskname}) 
+      Run(output ${itemMetric})
+
+
+
+    endif()
+
+
+
+
+  endforeach()
+endforeach()
+

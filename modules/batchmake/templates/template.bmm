@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+  <executable>
+    <Name>$ItemMetricName$</Name>
+    <Version>Not defined</Version>
+    <Path>$ItemMetricPath$/$ItemMetricName$</Path>
+    <Parameters>
+      <Parameter>
+        <Type>4</Type>
+        <Name>input1</Name>
+        <Value></Value>
+        <External>0</External>
+        <Optional>0</Optional>
+      </Parameter>
+      <Parameter>
+        <Type>4</Type>
+        <Name>input2</Name>
+        <Value></Value>
+        <External>0</External>
+        <Optional>0</Optional>
+      </Parameter>
+      <Parameter>
+        <Type>4</Type>
+        <Name>outputfile</Name>
+        <Value></Value>
+        <External>0</External>
+        <Optional>0</Optional>
+      </Parameter>
+    </parameters>
+  </executable>
