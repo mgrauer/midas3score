@@ -1,6 +1,6 @@
 <?php
 
-include_once '$BASE_PATH$modules/batchmake/library/KwBatchmakeCondor.php';
+include_once '$BASE_PATH$/modules/batchmake/library/KwBatchmakeCondor.php';
 $workDir = '$WORK_DIR$';
 $app = 'Default';
 $baseURL = 'http://localhost/midas3'; // todo CHANGE

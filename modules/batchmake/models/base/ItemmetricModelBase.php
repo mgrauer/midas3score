@@ -23,7 +23,7 @@ abstract class Batchmake_ItemmetricModelBase extends Batchmake_AppModel {
     $this->_mainData = array(
       'itemmetric_id' => array('type' => MIDAS_DATA),
       'metric_name' => array('type' => MIDAS_DATA),
-      'bms_name' => array('type' => MIDAS_DATA, )
+      'exe_path' => array('type' => MIDAS_DATA),
       );
     $this->initialize(); // required
     }
@@ -32,8 +32,14 @@ abstract class Batchmake_ItemmetricModelBase extends Batchmake_AppModel {
    * @return ItemmetricDao, will throw a Zend_Exception if an
    * Itemmetric already exists with this metricName
    */
-  public function createItemmetric($metricName, $bmsName)
+  public function createItemmetric($userDao, $metricName, $itemId, $itemmetricDir)
     {
+    include_once BASE_PATH . '/library/KWUtils.php';
+    if(!file_exists($itemmetricDir) && !KWUtils::mkDir($itemmetricDir))
+      {
+      throw new Zend_Exception('Itemmetric dir '.$itemmetricDir.' does not exist and could not be created');  
+      }
+      
     $this->loadDaoClass('ItemmetricDao', 'batchmake');
     $itemmetric = new Batchmake_ItemmetricDao();
 
@@ -45,12 +51,45 @@ abstract class Batchmake_ItemmetricModelBase extends Batchmake_AppModel {
       throw new Zend_Exception('An Itemmetric already exists with that name');
       }
 
+    // symlink the exe from the item
+    $shouldSymLink = true;
+    require_once BASE_PATH.'/core/controllers/components/ExportComponent.php';
+    $exportComponent = new ExportComponent();
+    $exportComponent->exportBitstreams($userDao, $itemmetricDir, array($itemId), $shouldSymLink);
+    
+    // assume name of exe is the same as that of the metricName, try to find it
+    $exePath = $itemmetricDir . '/'. $itemId . '/' . KWUtils::formatAppName($metricName);
+    if(!file_exists($exePath))
+      {
+      // clean out the exported item
+      $exportedItemPath = $itemmetricDir . '/'. $itemId;
+      KWUtils::recursiveRemoveDirectory($exportedItemPath);
+      // ensure that exe name is the same as the metricname
+      throw new Zend_Exception('An Itemmetric must have the same name as its executable');
+      }
+  
     $itemmetric->setMetricName($metricName);
-    $itemmetric->setBmsName($bmsName);
+    $itemmetric->setExePath($exePath);
     $this->save($itemmetric);
     return $itemmetric;
     } // end createItemmetric()
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
   /**
    * getAll returns all rows

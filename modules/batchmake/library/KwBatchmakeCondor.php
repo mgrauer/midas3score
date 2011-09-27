@@ -64,11 +64,11 @@ class DagJob
       }
     }
     
-  public function parseDagJob($workDir)
+  public function parseDagJob()
     {
     $properties = array('Output'=>'outputPath','Error'=>'errorPath','Log'=>'logPath','Executable'=>'executable','Arguments'=>'arguments');
-    $dagJobPath = $workDir.'/'.$this->jobFile;
-    $contents = file_get_contents($dagJobPath);
+//    $dagJobPath = $workDir.'/'.$this->jobFile;
+    $contents = file_get_contents($this->jobFile);//$dagJobPath);
     foreach($properties as $property=>$variableName)
       {
       $this->parseProperty($contents,$property,$variableName);
@@ -93,7 +93,7 @@ class KwBatchmakeCondor
     $this->workDir  = $workDir;
     $this->baseURL = $baseURL;
     $this->webApiToken = $this->getMidasWebAPIToken($baseURL, $email, $appName, $apiKey);
-    echo $this->webApiToken;
+    echo "token[$this->webApiToken]";
     // TODO some error checking
     }
       
@@ -145,13 +145,14 @@ class KwBatchmakeCondor
 #exit();
     $xmlObj = simplexml_load_string($loginResponse);
 #    echo $xmlObj;
-    $token = $xmlObj->token;
+    $token = (string)$xmlObj->token;
     return $token;
     }
   
     
   public function parseDag($dagName)
     {
+//echo "workdir[$this->workDir]";
     $dagPath = $this->workDir.'/'.$dagName;    
     // want to parse out all the jobs, figure out the DAG and the job names
     $contents = file_get_contents($dagPath);
@@ -196,12 +197,12 @@ class KwBatchmakeCondor
     $this->dagJobs = $dagJobs;
     foreach($dagJobs as $dagJob)
       {
-      $dagJob->parseDagJob($this->workDir);
+      $dagJob->parseDagJob();
       }
      
     }
         
-  public function parseScalar($outputFile)
+  protected function parseScalar($outputFile)
     {
     $outputPath = $this->workDir.'/'.$outputFile;    
     // want to parse out all the jobs, figure out the DAG and the job names
@@ -217,44 +218,86 @@ class KwBatchmakeCondor
       {
       throw new Exception('Expected scalar value not found in '.$outputFile);  
       }
-      echo $scalar;
+    return $scalar;
     }
     
+    
+  public function scalarValueCallback($outputFile, $webApiParams, $scalarValueName, $webApiMethod)
+    {
+    // get the scalar value
+    $scalarValue = $this->parseScalar($outputFile);
+echo "scalarValue[$scalarValue]";  
+    // add it to the other params
+    $webApiParams[$scalarValueName] = $scalarValue;
+    // call the web api method to upload the scalar value
+    
+    $midasREST = '/api/rest';
+    $curlOptions = array();
+    $post = array();
+    foreach($webApiParams as $name=>$value)
+      {
+      $post[$name] = $value;  
+      }
+    $post['token'] = $this->webApiToken;
+    $post['method'] = $webApiMethod;
+var_dump($post);
+    //$curlOptions[CURLOPT_URL] = $this->baseURL.$midasREST;
+    $curlOptions[CURLOPT_URL] = $this->baseURL.$midasREST;//.'?method='.$webApiMethod.'&token='.$this->webApiToken.'&dashboard_id='.$post['dashboard_id'].'&folder_id='.$post['folder_id'].'&item_id='.$post['item_id'].'&value='.$post['value'];
+//echo $curlOptions[CURLOPT_URL];
+    $curlOptions[CURLOPT_HEADER] = false;
+    $curlOptions[CURLOPT_POST] = true;
+    $curlOptions[CURLOPT_POSTFIELDS] = $post;
+    $curlOptions[CURLOPT_RETURNTRANSFER] = true;
+    $response = $this->callCurl($curlOptions);
+//    $xmlObj = simplexml_load_string($response);
+
+    // NOW WHAT??
+    
+    echo "response[$response]";
+  //  echo "xmlObj[$xmlObj]";
+    }
 
     
+/**
+      function uploadBitstreamToMidas($midasBaseURL,$jobName,$jobId,$returnCode,$parentItemId,$userEmail,$userAppName,$userApiKey,$pathToFile,$fileName)
+    {
+
+    // login to Midas via webAPI key
+    $token = getMidasWebAPIToken($midasBaseURL,$userEmail,$userAppName,$userApiKey);
+    if(!$token)
+      {
+      KwUtils::Error("Failed to obtain Midas WebAPI token\n");
+      return -1;
+      }
+
+    list($uploadtoken,$userid) = getMidasUploadToken($midasBaseURL,$token,$parentItemId,$fileName);
+
+    //get the file properties
+    $filePath = $pathToFile .'/'. $fileName;
+    $size = filesize($filePath);
+    $pathInfo = pathinfo($filePath);
+    $fp = fopen($filePath,'r');
+
+    // set up the url with query params
+    $midasUploadBitstreamREST = '/api/rest/midas.upload.bitstream';
+    $url = $midasBaseURL . $midasUploadBitstreamREST . "?uuid=&itemid=".$parentItemId."&mode=stream&filename=".$fileName."&path=".$filePath."&size=".$size."&uploadtoken=".$uploadtoken."&userid=".$userid;
+    $curlOptions = array();
+    $curlOptions[CURLOPT_URL] = $url;
+    $curlOptions[CURLOPT_FOLLOWLOCATION] = true;
+    $curlOptions[CURLOPT_SSL_VERIFYHOST] = 1;
+    $curlOptions[CURLOPT_SSL_VERIFYPEER] = false;
+    $curlOptions[CURLOPT_RETURNTRANSFER] = true;
+    $curlOptions[CURLOPT_UPLOAD] = true;
+    $curlOptions[CURLOPT_INFILESIZE] = $size;
+    $curlOptions[CURLOPT_INFILE] = $fp;
+    $uploadResponse = callCurl($curlOptions);
+    // TODO some checking of $uploadResponse, a bit difficult because the response is full of junk and not an xml doc
+    return 0;
+    }
+*/
+
     
     
 }
-
-
-/*
-//    public static function 
-
-$kwBC = new KwBatchmakeCondor();
-
-
-$app = 'Default';
-$baseURL = 'http://localhost/midas3';
-$email = 'michael.grauer@kitware.com';
-$apiKey = 'YRnxITpEmr8x9NvJ3AbUBKQCi0KKEgasXnQv650j';
-
-$token = $kwBC->getMidasWebAPIToken($baseURL, $email, $app, $apiKey);//'http://localhost/midas3','user1@user1.com','Default','9c4ae85257285cdbb6431ad4af9cee2e');
-
-echo $token;
-
-
-
-exit();
-
-*/
-
-
-//dag parser: parse job definition, parse dag, create dag in memory, parent, childern, read log of overall dag, refresh/replace
-        
-//        job parser, read output, error, log, executable, args, read the 3 logs
-        
-// want to parse out scalar value        
-
-
 
 ?>

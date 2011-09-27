@@ -22,7 +22,10 @@ abstract class Validation_ScalarResultModelBase extends Validation_AppModel
     parent::__construct();
     $this->_name = 'validation_scalarresult';
     $this->_key = 'scalarresult_id';
-
+    // adding in _daoName because of camel case ScalarResult but
+    // lowercase table name validation_scalarresult, need to explicitly
+    // set capitalization in Dao
+    $this->_daoName = 'ScalarResultDao';
     $this->_mainData = array(
         'scalarresult_id' => array('type' => MIDAS_DATA),
         'folder_id' => array('type' => MIDAS_DATA),

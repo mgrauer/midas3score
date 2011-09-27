@@ -26,7 +26,7 @@ foreach (filename1 ${item1files})
       SetAppOption(itemMetric.input2 ${cfg_item2}/${filename2})
       # TODO something better for output
       SetAppOption(itemMetric.outputfile ${filename1}${filename2}.out)
-      #CondorPostScript(itemMetric ${cfg_condorpostscript} ${cfg_midas_baseURL} ${cfg_competitor_itemid} ${cfg_GC_itemid} ${cfg_email} ${cfg_appname} ${cfg_apikey} ${cfg_output_directory} ${cfg_output_file} ${cfg_projectname} ${cfg_projectid} ${cfg_experimentname} ${cfg_taskname}) 
+      CondorPostScript(itemMetric ${cfg_php_path} ${cfg_condorpostscript} ${filename1}${filename2}.out) 
       Run(output ${itemMetric})
 
     endif()
@@ -42,7 +42,7 @@ foreach (filename1 ${item1files})
       SetAppOption(itemMetric.input2 ${cfg_item2}/${filename2})
       # TODO something better for output
       SetAppOption(itemMetric.outputfile ${filename1}${filename2}.out)
-      #CondorPostScript(itemMetric ${cfg_condorpostscript} ${cfg_midas_baseURL} ${cfg_competitor_itemid} ${cfg_GC_itemid} ${cfg_email} ${cfg_appname} ${cfg_apikey} ${cfg_output_directory} ${cfg_output_file} ${cfg_projectname} ${cfg_projectid} ${cfg_experimentname} ${cfg_taskname}) 
+      CondorPostScript(itemMetric ${cfg_php_path} ${cfg_condorpostscript} ${filename1}${filename2}.out) 
       Run(output ${itemMetric})
 
 

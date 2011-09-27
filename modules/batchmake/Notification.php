@@ -11,15 +11,18 @@ PURPOSE.  See the above copyright notices for more information.
 =========================================================================*/
 
 /** notification manager*/
-class Batchmake_Notification extends MIDAS_Notification
+require_once BASE_PATH . '/modules/api/library/APIEnabledNotification.php';
+
+class Batchmake_Notification extends ApiEnabled_Notification
   {
-  public $_moduleComponents=array('KWBatchmake');
   public $moduleName = 'batchmake';
+  public $_moduleComponents=array('KWBatchmake','Api');
   public $_components = array('Utility', 'Internationalization');    
     
   /** init notification process*/
   public function init()
     {
+    $this->enableWebAPI();  
     $this->addCallBack('CALLBACK_CORE_GET_DASHBOARD', 'getDashboard');
     $this->addCallBack('CALLBACK_CORE_GET_LEFT_LINKS', 'getLeftLink');
     }//end init

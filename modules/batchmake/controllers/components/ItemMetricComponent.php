@@ -19,7 +19,9 @@ class Batchmake_ItemMetricComponent extends AppComponent
 {
 
   protected $batchmakeComponent;
-
+  protected $exportComponent;
+  
+  
   /**
    * Constructor, loads ini from standard config location, unless a
    * supplied alternateConfig.
@@ -29,6 +31,8 @@ class Batchmake_ItemMetricComponent extends AppComponent
     {
     require_once BASE_PATH.'/modules/batchmake/controllers/components/KWBatchmakeComponent.php';
     $this->batchmakeComponent = new Batchmake_KWBatchmakeComponent($alternateConfig);
+    require_once BASE_PATH.'/core/controllers/components/ExportComponent.php';
+    $this->exportComponent = new ExportComponent();
     } // end __construct($alternateConfig)
 
 
@@ -43,48 +47,32 @@ class Batchmake_ItemMetricComponent extends AppComponent
     $modelLoad = new MIDAS_ModelLoader();
     $itemmetricModel = $modelLoad->loadModel('Itemmetric', 'batchmake');
     $itemmetricDaos = $itemmetricModel->getAll();
-    $idsToNames = array();
+    $idsAndNames = array();
     foreach($itemmetricDaos as $dao)
       {
-      $idsToNames[$dao->getItemmetricId()] = $dao->getMetricName();
+      $itemMetric = array();
+      $itemMetric['itemmetric_id'] = $dao->getItemmetricId();
+      $itemMetric['metric_name'] = $dao->getMetricName();
+      $idsAndNames[] = $itemMetric;
       }
 
-    return $idsToNames;
+    return $idsAndNames;
     }
 
   /**
    * @TODO better docs
    * @return type
    */
-  public function addMetrics($itemId, $metricName)
+  public function addMetric($userDao, $itemId, $metricName)
     {
-    // @TODO some checking to ensure we don't add one that already has that
-    // name or bmsScript name
-    // @TODO some checking to see if config is correct?
-    //$metricName = 'MyMetric';
-    //$bmsName = 'MyMetric.bms';
+    $bmConfig = $this->batchmakeComponent->getCurrentConfig(); 
+    $appDir = $bmConfig[MIDAS_BATCHMAKE_APP_DIR_PROPERTY];
+    $itemmetricDir = $appDir .'/'. 'itemmetric';
 
-    /*
-CREATE TABLE batchmake_itemmetric (
-    itemmetric_id bigint(20) NOT NULL AUTO_INCREMENT,
-    metric_name character varying(64) NOT NULL,
-    bms_name character varying(256) NOT NULL,
-    PRIMARY KEY (itemmetric_id)
-);*/
-    // HACK for now set bmsName as itemId
-   // $bmsName = $itemId . '.bms';
-
-    // want exe name rather than bms name 
-      
     $modelLoad = new MIDAS_ModelLoader();
     $itemmetricModel = $modelLoad->loadModel('Itemmetric', 'batchmake');
-    $itemmetricDao = $itemmetricModel->createItemmetric($metricName, $bmsName);
+    $itemmetricDao = $itemmetricModel->createItemmetric($userDao, $metricName, $itemId, $itemmetricDir);
     $metricId = $itemmetricDao->getItemmetricId();
-    
-    
-    
-    
-    
     /*
     want to create a bms from a template, replacing exe name
     want to create a bmm from a template, replacing exename and path
@@ -92,9 +80,7 @@ CREATE TABLE batchmake_itemmetric (
     from an item into the itemmetrics dir, created under tmp and batchmake
     */
     
-    
     return $metricId;
-
     }
 
   public function createItemmetricBms($workDir, $itemmetricName, $configVars)
@@ -138,8 +124,11 @@ CREATE TABLE batchmake_itemmetric (
     }
     
 
-  public function createMidasCallBackScripts($workDir, $email, $baseURL, $apiKey, $dagName, $taskId)
+  public function createMidasCallBackScripts($workDir, $email, $baseURL, $apiKey, $dagName, $taskId, $callBackParams)
     {
+    // set propery values for the daguploader from template
+      
+    // CLEAN THIS UP, method maybe  
     $templateFile = BASE_PATH.'/modules/batchmake/templates/daguploader.php';
     $contents = file_get_contents($templateFile);
     $replacedContents = str_replace('$BASE_PATH$',BASE_PATH,$contents);
@@ -150,6 +139,81 @@ CREATE TABLE batchmake_itemmetric (
     $replacedContents6 = str_replace('$TASK_ID$', $taskId, $replacedContents5);
     $outPath = $workDir .'/daguploader.php';
     file_put_contents($outPath,$replacedContents6);    
+    
+    
+    
+    // still need to do postscript one
+    // for post script one, add in log times
+    // 
+    // 
+    // for post script one, add in scalar values
+    // .. finished boolean
+    
+    // really want to be able to pass in a function that can set script, vars
+    // to replace, replacement vals, and call back functions (web api)
+    $scalarValueName = $callBackParams['SCALAR_VALUE_NAME'];
+    $webApiMethod = $callBackParams['WEB_API_METHOD'];
+    $webApiParams = $callBackParams['WEB_API_PARAMS'];
+    $webApiParamStr = 'array(';
+    foreach($webApiParams as $key=>$value)
+      {
+      $webApiParamStr .= "'".$key . "'=>" . $value . ',';
+      }
+    $webApiParamStr .= ')';
+
+    
+    $templateFile = BASE_PATH.'/modules/batchmake/templates/scalarvaluepostscript.php';
+    $contents = file_get_contents($templateFile);
+    $replacedContents = str_replace('$BASE_PATH$',BASE_PATH,$contents);
+    $replacedContents2 = str_replace('$WORK_DIR$', $workDir, $replacedContents);
+    $replacedContents3 = str_replace('$EMAIL$', $email, $replacedContents2);
+    $replacedContents4 = str_replace('$API_KEY$', $apiKey, $replacedContents3);
+    $replacedContents5 = str_replace('$TASK_ID$', $taskId, $replacedContents4);
+    $replacedContents6 = str_replace('$SCALAR_VALUE_NAME$', $scalarValueName, $replacedContents5);
+    $replacedContents7 = str_replace('$WEB_API_METHOD$', $webApiMethod, $replacedContents6);
+    $replacedContents8 = str_replace('$WEB_API_PARAMS$', $webApiParamStr, $replacedContents7);
+ 
+    
+    $outPath = $workDir .'/scalarvaluepostscript.php';
+    file_put_contents($outPath,$replacedContents8);    
+    
+    
+    
+    
+    
+    
+    
+/*    
+   * Set a single scalar result value
+   * @param dashboard_id the id of the target dashboard
+   * @param folder_id the id of the target result folder
+   * @param item_id the id of the result item
+   * @param value the value of the result being set
+   * @return the id of the created scalar result
+
+    
+   $callBackParams should be:
+       params:  name=>value,
+       scalarValueName,
+       webAPICall
+       
+    
+    extra_params, scalarValueVariableName, web.api.call
+    
+    param vals, web ApiCall
+    
+           
+           
+    dashboard_id, $DASHBOARD_ID$
+    folder_id, $FOLDER_ID$
+    item_id, $ITEM_ID$
+    value, $SCALAR_VALUE$???
+           
+           
+           
+    web api call
+    
+  */  
     }
     
     
@@ -171,49 +235,48 @@ CREATE TABLE batchmake_itemmetric (
    * @TODO better docs
    * @return type
    */
-  public function compareItems($userDao, $itemId1, $itemId2, $metricId)
+  public function compareItems($userDao, $itemId1, $itemId2, $metricId, $callBackParams, $webApiApplication = 'Default')
     {
-//    $userSession = Zend_Registry::get('userSession');
-//var_dump($userSession);    
-//    $userDao = $userSession->Dao;
-echo "compareItems ($itemId1, $itemId2, $metricId)";    
-//var_dump($userDao);
+    if(!$userDao)
+      {
+      throw new Zend_Exception('You need to have a valid user session to compare items with an ItemMetric');
+      }
+    // get an api key for this user
+    $modelLoad = new MIDAS_ModelLoader();
+    $userApiModel = $modelLoad->loadModel('Userapi', 'api');
+    $userApiDao = $userApiModel->getByAppAndUser($webApiApplication,$userDao);
+    if(!$userApiDao)
+      {
+      throw new Zend_Exception('You need to create a web-api key for this user for application: '.$webApiApplication);
+      }
+
+    // what to do if there ain't a key?
+
+      
+      
+      
     $modelLoad = new MIDAS_ModelLoader();
     $itemmetricModel = $modelLoad->loadModel('Itemmetric', 'batchmake');
     $itemmetricDao = $itemmetricModel->load($metricId);
-    // TODO check if no dao
+    if(!$itemmetricDao)
+      {
+      throw new Zend_Exception('You need to pass in a valid ItemMetric ID');
+      }
     $metricName = $itemmetricDao->getMetricName();
 
-    
-    
-    
-    
-    
-    
-    
-    // TODO get the userDao
-    // create the task and workDir
     $taskDao = $this->batchmakeComponent->createTask($userDao);
     $workDir = $taskDao->getWorkDir();
-echo "workDir[$workDir] metricName[$metricName]";    
-    // TODO get the dir where the itemmetric apps live
-    // TODO this will probably change
-    //$appDir = '';
 
-
-
-
-    // TODO export items to some data dir
-    // TODO get config properties
-    // TODO write config file
+    // export the items
     $shouldSymLink = true;
     require_once BASE_PATH.'/core/controllers/components/ExportComponent.php';
     $exportComponent = new ExportComponent();
     $exportComponent->exportBitstreams($userDao, $workDir, array($itemId1, $itemId2), $shouldSymLink);
-    
-    
+        
     // for now assume compare same filename per each item
     
+    // TODO this section should be revisited/revised/cleaned
+    // 
     // want to write out item names as config 
     $configVars = "# Imported parameters from Midas\n";
     $configVars .= "Set(cfg_item1 '".$workDir.$itemId1."')\n";
@@ -222,14 +285,6 @@ echo "workDir[$workDir] metricName[$metricName]";
     //$configVars .= "Set(cfg_compare_mode 'FILENAME_MATCH')\n";
     $configVars .= "Set(cfg_compare_mode 'CARTESIAN_PRODUCT')\n";
     
-    
-    // get an api key for this user, for Default application
-    $modelLoad = new MIDAS_ModelLoader();
-    $userApiModel = $modelLoad->loadModel('Userapi', 'api');
-    $userApiDao = $userApiModel->getByAppAndUser('Default',$userDao);
-
-    // what to do if there ain't a key?
-
 
     $configVars .= "Set(cfg_apikey '".$userApiDao->getApikey()."')\n";
     $configVars .= "Set(cfg_appname 'Default')\n";
@@ -238,10 +293,13 @@ echo "workDir[$workDir] metricName[$metricName]";
     //http://localhost/midas3
     $baseURL = 'http://localhost/midas3';
     $configVars .= "Set(cfg_midas_baseURL '".$baseURL."')\n";
-    $configVars .= "Set(cfg_condorpostscript '".$workDir."midascondoruploader.php')\n";
+    $configVars .= "Set(cfg_condorpostscript '".$workDir."scalarvaluepostscript.php')\n";
     $configVars .= "Set(cfg_work '".$workDir."')\n";
     $configVars .= "Set(cfg_midasbasepath '".BASE_PATH."')\n";
     $configVars .= "Set(cfg_taskId '".$taskDao->getKey()."')\n";
+    $configVars .= "Set(cfg_php_path '/usr/bin/php')\n"; //TODO get this from somewhere
+    
+    
     
     $bmScript = $this->createItemmetricBms($workDir, $metricName, $configVars);
 //echo "wrote bmScript[$bmScript]";
@@ -257,7 +315,7 @@ echo "workDir[$workDir] metricName[$metricName]";
     
     
     
-    $this->createMidasCallBackScripts($workDir, $userDao->getEmail(), $baseURL, $userApiDao->getApikey(), $dagScript, $taskDao->getKey());
+    $this->createMidasCallBackScripts($workDir, $userDao->getEmail(), $baseURL, $userApiDao->getApikey(), $dagScript, $taskDao->getKey(), $callBackParams);
     
     
     
